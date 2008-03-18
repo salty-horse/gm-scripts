@@ -53,18 +53,45 @@
 // @include       https://www.amazon.com/*
 // @include       http://amazon.com/*
 // @include       https://amazon.com/*
+// @include       http://www.amazon.co.uk/*
+// @include       https://www.amazon.co.uk/*
+// @include       http://amazon.co.uk/*
+// @include       https://amazon.co.uk/*
 // ==/UserScript==
 
 (function() {
 
+// Helper function. From the Prototype Javascript Framework:
+String.prototype.endsWith = function (pattern) {
+	var d = this.length - pattern.length;
+	return d >= 0 && this.lastIndexOf(pattern) === d;
+}
+
+var amazonCurrencies = ["USD", "GBP"];
+var currencyFrom;
+var currencyFromSymbol;
+var currencyFromSymbolForRegex;
+
+// Check which Amazon we're at:
+// amazon.com
+if (document.domain.endsWith("com")) {
+	currencyFrom = "USD";
+	currencyFromSymbol = "\$";
+	currencyFromSymbolForRegex = "\\$";
+// amazon.co.uk
+} else {
+	currencyFrom = "GBP";
+	currencyFromSymbol = "\£";
+	currencyFromSymbolForRegex = "\£";
+}
+
+// Configuration keys (not all of them)
+var LAST_RUN = "last_run_";
+var CURRENCY_RATE = "currency_rate_";
+
 // Customize to fit:
 // (Some options are modifiable from the GUI)
-var currencyFrom = "USD";
 var currencyToDefault = "ILS";
-
-var currencyFromSymbol = "\$"; // When changing this, don't forget the one below
-var currencyFromSymbolForRegex = "\\$";
-
 var currencyToSymbolDefault = "NIS ";
 var decimalPlaces = 2;
 var prefixCurrencySymbol = true;
@@ -75,8 +102,8 @@ var elnames = new Array("td", "font", "b", "span", "strong", "div");
 var rounding = Math.pow(10, decimalPlaces);
 
 // Check last run time
-var rate = GM_getValue("currency_data");
-var lastRun = GM_getValue("last_run", "01/01/0001");
+var rate = GM_getValue(CURRENCY_RATE + currencyFrom);
+var lastRun = GM_getValue(LAST_RUN + currencyFrom, "01/01/0001");
 var currencyTo = GM_getValue("currency_to", currencyToDefault);
 var todayDate = new Date();
 var todayString = todayDate.getDate() + "/" + todayDate.getMonth() + "/" + todayDate.getFullYear();
@@ -87,27 +114,28 @@ GM_registerMenuCommand("Change Local Currency Symbol (" + currencyToSymbol + ")"
 
 if (rate == undefined || todayString != lastRun) {
 	// GM_log("Currency data is out-dated. Fetching new information...");
-	getCurrencyData();
+	fetchCurrencyData(currencyFrom, function() {
+		rate = GM_getValue(CURRENCY_RATE + currencyFrom);
+		convertCurrency();
+	});
 } else {
 	convertCurrency();
 }
 
 // Function definitions
 
-function getCurrencyData() {
+function fetchCurrencyData(coin, callback) {
 	GM_xmlhttpRequest({
 		method: "GET",
-		url: "http://finance.yahoo.com/d/quotes.csv?s=" + currencyFrom + currencyTo + "=X&f=l1&e=.csv",
+		url: "http://download.finance.yahoo.com/d/quotes.csv?s=" + coin + currencyTo + "=X&f=l1&e=.csv",
 		onload: function(responseDetails) {
 			var rate = responseDetails.responseText.replace(/[\r\n]/g, "");
-			GM_setValue("currency_data", rate);
-			GM_setValue("last_run", todayString);
-			GM_setValue("currency_to", currencyTo);
-			// GM_log("Rate: " + currencyFrom + "1 = " + currencyTo + " " + rate);
-			convertCurrency();
+			GM_setValue(CURRENCY_RATE + coin, rate);
+			GM_setValue(LAST_RUN + coin, todayString);
+			callback();
 		},
 		onerror: function(responseDetails) {
-			alert("Error fetching currency data");
+			alert("Error fetching currency data for " + coin);
 		}
 	});
 }
@@ -157,7 +185,7 @@ function formatCurrency(num, rounding, symbol, prefix) {
 	cents = num % rounding;
 
 	num = Math.floor(num / rounding).toString();
-    
+
 	if (cents < 10)
 		cents = "0" + cents;
 	for (var i = 0; i < Math.floor((num.length - (1 + i)) / 3); i++)
@@ -165,7 +193,7 @@ function formatCurrency(num, rounding, symbol, prefix) {
 		                       num.substring(num.length-(4*i+3));
 
 	if (prefix)
-		return (((sign)?'':'-') + symbol + num + '.' + cents);
+		return (symbol + ((sign)?'':'-') + num + '.' + cents);
 	else
 		return (((sign)?'':'-') + num + '.' + cents + symbol);
 }
@@ -178,15 +206,18 @@ function setLocalCurrency() {
 		return;
 	}
 
-	alert("Success! Refresh page to see the changes.");
-
 	// GM_log("Currency changed from " + currencyTo + " to " + newCurrencyTo);
 
 	GM_setValue("currency_to", newCurrencyTo);
 	currencyTo = newCurrencyTo;
 
-	// Always update the currency data after a change (saves doing it later)
-	getCurrencyData();
+	// Reset the various conversion rates
+	for (var i = 0; i < amazonCurrencies.length; ++i) {
+		GM_setValue(LAST_RUN + amazonCurrencies[i], "01/01/0001");
+	}
+
+	// Not really.. at this point, the fetching isn't done yet
+	alert("Success! Refresh page to see the changes.");
 }
 
 function setLocalCurrencySymbol() {
