@@ -38,11 +38,19 @@
     * The converted price now appears right next to the original price.
     * All of the prices in a piece of text are converted, instead of just the first one.
 
+  2008-15-12
+    * Added support for Amazon.ca
+    * The regex now matches 0 or more spaces after the currency symbol. Useful for amazon.ca
+	  (I could just add the single space to the canadian dollar currency regex pattern, but
+	  other websites might behave differently).
+
 
   TODO:
     * Add GM menu options to change source currency
     * Add option and GUI to choose whether the local currency symbol
       should be prefixed or suffixed to the currency
+	* Figure out the local currency automatically, so one would be able to use this script
+	  on every website, even if it's using GBP on a .com domain
 */
 
 // ==UserScript==
@@ -57,6 +65,10 @@
 // @include       https://www.amazon.co.uk/*
 // @include       http://amazon.co.uk/*
 // @include       https://amazon.co.uk/*
+// @include       http://www.amazon.ca/*
+// @include       https://www.amazon.ca/*
+// @include       http://amazon.ca/*
+// @include       https://amazon.ca/*
 // ==/UserScript==
 
 (function() {
@@ -67,7 +79,7 @@ String.prototype.endsWith = function (pattern) {
 	return d >= 0 && this.lastIndexOf(pattern) === d;
 }
 
-var amazonCurrencies = ["USD", "GBP"];
+var amazonCurrencies = ["USD", "GBP", "CAD"];
 var currencyFrom;
 var currencyFromSymbol;
 var currencyFromSymbolForRegex;
@@ -79,10 +91,17 @@ if (document.domain.endsWith("com")) {
 	currencyFromSymbol = "\$";
 	currencyFromSymbolForRegex = "\\$";
 // amazon.co.uk
-} else {
+} else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
 	currencyFromSymbol = "\£";
 	currencyFromSymbolForRegex = "\£";
+// amazon.ca
+} else if (document.domain.endsWith("ca")) {
+	currencyFrom = "CAD";
+	currencyFromSymbol = "CDN\$";
+	currencyFromSymbolForRegex = "CDN\\$";
+} else {
+	return;
 }
 
 // Configuration keys (not all of them)
@@ -156,8 +175,8 @@ function convertCurrency() {
 					// Quick check before using the regex
 					if (currNode.nodeValue.indexOf(currencyFromSymbol) != -1) {
 						// Match a string that begins with the symbol, and then
-						// has digits, commas and periods, ending with a digit
-						var matchRegex = new RegExp(currencyFromSymbolForRegex + "[\\d,.]+\\d", "g");
+						// has 0 or more spaces, digits, commas and periods, ending with a digit
+						var matchRegex = new RegExp(currencyFromSymbolForRegex + "\\s*[\\d,.]+\\d", "g");
 						currNode.nodeValue = currNode.nodeValue.replace(matchRegex, appendConversion);
 					}
 				}
