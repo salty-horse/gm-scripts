@@ -44,6 +44,9 @@
 	  (I could just add the single space to the canadian dollar currency regex pattern, but
 	  other websites might behave differently).
 
+  2009-05-02
+    * Added support for Amazon.de (Euros).
+    * Refactored a bit to allow for different price parsers.
 
   TODO:
     * Add GM menu options to change source currency
@@ -69,6 +72,10 @@
 // @include       https://www.amazon.ca/*
 // @include       http://amazon.ca/*
 // @include       https://amazon.ca/*
+// @include       http://www.amazon.de/*
+// @include       https://www.amazon.de/*
+// @include       http://amazon.de/*
+// @include       https://amazon.de/*
 // ==/UserScript==
 
 (function() {
@@ -81,25 +88,68 @@ String.prototype.endsWith = function (pattern) {
 
 var amazonCurrencies = ["USD", "GBP", "CAD"];
 var currencyFrom;
-var currencyFromSymbol;
-var currencyFromSymbolForRegex;
+
+
+// Decimal separator:   .
+// Thousands separator: ,
+function regularPriceParser(price, currency) {
+	return parseFloat(price.replace(/,/g, ""));
+}
+
+// Decimal separator:   ,
+// Thousands separator: .
+function europeanPriceParser(price, currency) {
+	function replacer(character) {
+		var translate = {".":"", ",":"."};
+		return translate[character];
+	}
+	return regularPriceParser(price.replace(/[,.]/g, replacer), currency);
+}
+
+// priceRegex explanation:
+// Match a string that begins with the symbol, and then
+// has 0 or more spaces, digits, commas and periods, ending with a digit.
+// The actual numeric price portion MUST BE enclosed in parentheses.
+
+var currencies = {
+	"USD" : {
+		symbol: "$",
+		priceRegex: /\$\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	},
+
+	"GBP" : {
+		symbol: "£",
+		priceRegex: /£\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	},
+
+	"CAD" : {
+		symbol: "CDN$",
+		priceRegex: /CDN\$\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	},
+
+	"EUR" : {
+		symbol: "EUR",
+		priceRegex: /EUR\s*([\d,.]+\d)/,
+		parser: europeanPriceParser
+	}
+};
 
 // Check which Amazon we're at:
 // amazon.com
 if (document.domain.endsWith("com")) {
 	currencyFrom = "USD";
-	currencyFromSymbol = "$";
-	currencyFromSymbolForRegex = "\\$";
 // amazon.co.uk
 } else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
-	currencyFromSymbol = "£";
-	currencyFromSymbolForRegex = "£";
 // amazon.ca
 } else if (document.domain.endsWith("ca")) {
 	currencyFrom = "CAD";
-	currencyFromSymbol = "CDN$";
-	currencyFromSymbolForRegex = "CDN\\$";
+// amazon.de
+} else if (document.domain.endsWith("de")) {
+	currencyFrom = "EUR";
 } else {
 	return;
 }
@@ -147,8 +197,8 @@ function fetchCurrencyData(coin, callback) {
 }
 
 // Receives a price, and converts it. Returns "<original price> (<converted price>)"
-function appendConversion(price) {
-	var originalPrice = parseFloat(price.replace(currencyFromSymbolForRegex, "").replace(/,/g, ""));
+function appendConversion(price, matched) {
+	var originalPrice = currencies[currencyFrom].parser(matched, currencyFrom);
 
 	if (isNaN(originalPrice)) {
 		return price;
@@ -185,27 +235,29 @@ function formatCurrency(num, rounding, symbol, prefix) {
 
 // Convert desired currency
 function convertCurrency() {
-	for (elname in elnames) {
-		if (elnames.hasOwnProperty(elname)) {
-			var elems = document.getElementsByTagName(elnames[elname]);
 
-			var i,j;
+	// Match a string that begins with the symbol, and then
+	// has 0 or more spaces, digits, commas and periods, ending with a digit
+	var currency = currencies[currencyFrom];
 
-			for (i = 0; i < elems.length; ++i) {
-				var price = elems[i];
+	var i,j,k;
 
-				for (j = 0; j < price.childNodes.length; ++j) {
-					var currNode = price.childNodes[j];
-					// Only modify text nodes
-					if (currNode.nodeType == 3) {
+	for (i = 0; i < elnames.length; ++i) {
+		var elems = document.getElementsByTagName(elnames[i]);
 
-						// Quick check before using the regex
-						if (currNode.nodeValue.indexOf(currencyFromSymbol) != -1) {
-							// Match a string that begins with the symbol, and then
-							// has 0 or more spaces, digits, commas and periods, ending with a digit
-							var matchRegex = new RegExp(currencyFromSymbolForRegex + "\\s*[\\d,.]+\\d", "g");
-							currNode.nodeValue = currNode.nodeValue.replace(matchRegex, appendConversion);
-						}
+		for (j = 0; j < elems.length; ++j) {
+			var price = elems[j];
+
+			for (k = 0; k < price.childNodes.length; ++k) {
+				var currNode = price.childNodes[k];
+				// Only modify text nodes
+				if (currNode.nodeType == 3) {
+
+					// Quick check before using the regex
+					if (currNode.nodeValue.indexOf(currency.symbol) != -1) {
+						// nbsp replacement done to fix some amazon.de prices (e.g. "EUR&nbsp;1,23")
+						GM_log(currNode.nodeValue.replace(/&nbsp;/, " "));
+						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currency.priceRegex, appendConversion);
 					}
 				}
 			}
