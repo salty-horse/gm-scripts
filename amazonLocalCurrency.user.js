@@ -77,7 +77,7 @@
 String.prototype.endsWith = function (pattern) {
 	var d = this.length - pattern.length;
 	return d >= 0 && this.lastIndexOf(pattern) === d;
-}
+};
 
 var amazonCurrencies = ["USD", "GBP", "CAD"];
 var currencyFrom;
@@ -88,17 +88,17 @@ var currencyFromSymbolForRegex;
 // amazon.com
 if (document.domain.endsWith("com")) {
 	currencyFrom = "USD";
-	currencyFromSymbol = "\$";
+	currencyFromSymbol = "$";
 	currencyFromSymbolForRegex = "\\$";
 // amazon.co.uk
 } else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
-	currencyFromSymbol = "\£";
-	currencyFromSymbolForRegex = "\£";
+	currencyFromSymbol = "£";
+	currencyFromSymbolForRegex = "£";
 // amazon.ca
 } else if (document.domain.endsWith("ca")) {
 	currencyFrom = "CAD";
-	currencyFromSymbol = "CDN\$";
+	currencyFromSymbol = "CDN$";
 	currencyFromSymbolForRegex = "CDN\\$";
 } else {
 	return;
@@ -116,7 +116,7 @@ var decimalPlaces = 2;
 var prefixCurrencySymbol = true;
 
 // Only traverse these elements
-var elnames = new Array("td", "font", "b", "span", "strong", "div");
+var elnames = ["td", "font", "b", "span", "strong", "div"];
 
 var rounding = Math.pow(10, decimalPlaces);
 
@@ -127,19 +127,6 @@ var currencyTo = GM_getValue("currency_to", currencyToDefault);
 var todayDate = new Date();
 var todayString = todayDate.getDate() + "/" + todayDate.getMonth() + "/" + todayDate.getFullYear();
 var currencyToSymbol = GM_getValue("currency_symbol", currencyToSymbolDefault);
-
-GM_registerMenuCommand("Change Local Currency (" + currencyTo + ")", setLocalCurrency);
-GM_registerMenuCommand("Change Local Currency Symbol (" + currencyToSymbol + ")", setLocalCurrencySymbol);
-
-if (rate == undefined || todayString != lastRun) {
-	// GM_log("Currency data is out-dated. Fetching new information...");
-	fetchCurrencyData(currencyFrom, function() {
-		rate = GM_getValue(CURRENCY_RATE + currencyFrom);
-		convertCurrency();
-	});
-} else {
-	convertCurrency();
-}
 
 // Function definitions
 
@@ -159,43 +146,18 @@ function fetchCurrencyData(coin, callback) {
 	});
 }
 
-// Convert desired currency
-function convertCurrency() {
-	for (elname in elnames) {
-		var elems = document.getElementsByTagName(elnames[elname]);
-
-		for (i = 0; i < elems.length; ++i) {
-			var price = elems[i];
-
-			for (j = 0; j < price.childNodes.length; ++j) {
-				var currNode = price.childNodes[j];
-				// Only modify text nodes
-				if (currNode.nodeType == 3) {
-
-					// Quick check before using the regex
-					if (currNode.nodeValue.indexOf(currencyFromSymbol) != -1) {
-						// Match a string that begins with the symbol, and then
-						// has 0 or more spaces, digits, commas and periods, ending with a digit
-						var matchRegex = new RegExp(currencyFromSymbolForRegex + "\\s*[\\d,.]+\\d", "g");
-						currNode.nodeValue = currNode.nodeValue.replace(matchRegex, appendConversion);
-					}
-				}
-			}
-		}
-	}
-}
-
 // Receives a price, and converts it. Returns "<original price> (<converted price>)"
 function appendConversion(price) {
-	var originalPrice = parseFloat(price.replace(currencyFromSymbol, "").replace(/,/g, ""));
+	var originalPrice = parseFloat(price.replace(currencyFromSymbolForRegex, "").replace(/,/g, ""));
 
-	if (isNaN(originalPrice))
+	if (isNaN(originalPrice)) {
 		return price;
+	}
 
 	var converted = formatCurrency(originalPrice * rate, rounding,
 		currencyToSymbol, prefixCurrencySymbol);
 
-	return result = price + " (" + converted + ")";
+	return price + " (" + converted + ")";
 }
 
 function formatCurrency(num, rounding, symbol, prefix) {
@@ -205,22 +167,57 @@ function formatCurrency(num, rounding, symbol, prefix) {
 
 	num = Math.floor(num / rounding).toString();
 
-	if (cents < 10)
+	if (cents < 10) {
 		cents = "0" + cents;
-	for (var i = 0; i < Math.floor((num.length - (1 + i)) / 3); i++)
+	}
+
+	for (var i = 0; i < Math.floor((num.length - (1 + i)) / 3); i++) {
 		num = num.substring(0, num.length - (4 * i + 3)) + ',' +
 		                       num.substring(num.length-(4*i+3));
+	}
 
-	if (prefix)
+	if (prefix) {
 		return (symbol + ((sign)?'':'-') + num + '.' + cents);
-	else
+	} else {
 		return (((sign)?'':'-') + num + '.' + cents + symbol);
+	}
 }
+
+// Convert desired currency
+function convertCurrency() {
+	for (elname in elnames) {
+		if (elnames.hasOwnProperty(elname)) {
+			var elems = document.getElementsByTagName(elnames[elname]);
+
+			var i,j;
+
+			for (i = 0; i < elems.length; ++i) {
+				var price = elems[i];
+
+				for (j = 0; j < price.childNodes.length; ++j) {
+					var currNode = price.childNodes[j];
+					// Only modify text nodes
+					if (currNode.nodeType == 3) {
+
+						// Quick check before using the regex
+						if (currNode.nodeValue.indexOf(currencyFromSymbol) != -1) {
+							// Match a string that begins with the symbol, and then
+							// has 0 or more spaces, digits, commas and periods, ending with a digit
+							var matchRegex = new RegExp(currencyFromSymbolForRegex + "\\s*[\\d,.]+\\d", "g");
+							currNode.nodeValue = currNode.nodeValue.replace(matchRegex, appendConversion);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 
 function setLocalCurrency() {
 	var newCurrencyTo = prompt("Enter the code for your local currency (e.g. AUD, USD, ILS, etc.)", "");
 
-	if (newCurrencyTo == "" || newCurrencyTo == null) {
+	if (newCurrencyTo === "" || newCurrencyTo === null) {
 		alert("Currency code is invalid. Please enter again");
 		return;
 	}
@@ -242,7 +239,7 @@ function setLocalCurrency() {
 function setLocalCurrencySymbol() {
 	var newSymbol = prompt("Enter the symbol for your local currency ( e.g. A$, $, ¥, £, etc.)", "");
 
-	if (newSymbol == '' || newSymbol == null) {
+	if (newSymbol === '' || newSymbol === null) {
 		alert("Symbol is invalid. Please enter again");
 		return;
 	}
@@ -253,6 +250,21 @@ function setLocalCurrencySymbol() {
 
 	GM_setValue("currency_symbol", newSymbol);
 	currencyToSymbol = newSymbol;
+}
+
+
+GM_registerMenuCommand("Change Local Currency (" + currencyTo + ")", setLocalCurrency);
+GM_registerMenuCommand("Change Local Currency Symbol (" + currencyToSymbol + ")", setLocalCurrencySymbol);
+
+
+if (rate === undefined || todayString !== lastRun) {
+	// GM_log("Currency data is out-dated. Fetching new information...");
+	fetchCurrencyData(currencyFrom, function() {
+		rate = GM_getValue(CURRENCY_RATE + currencyFrom);
+		convertCurrency();
+	});
+} else {
+	convertCurrency();
 }
 
 })();
