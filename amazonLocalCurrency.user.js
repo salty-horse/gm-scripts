@@ -59,7 +59,7 @@
 // ==UserScript==
 // @name          Amazon Local Currency - Dynamic version
 // @namespace     http://userscripts.org/scripts/show/1476
-// @description   Show prices in you local currency
+// @description   Show prices in your local currency
 // @include       http://www.amazon.com/*
 // @include       https://www.amazon.com/*
 // @include       http://amazon.com/*
