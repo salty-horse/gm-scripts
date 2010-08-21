@@ -76,6 +76,10 @@
 // @include       https://www.amazon.de/*
 // @include       http://amazon.de/*
 // @include       https://amazon.de/*
+// @include       http://www.amazon.co.jp/*
+// @include       https://www.amazon.co.jp/*
+// @include       http://amazon.co.jp/*
+// @include       https://amazon.co.jp/*
 // ==/UserScript==
 
 (function() {
@@ -134,6 +138,12 @@ var currencies = {
 		symbol: "EUR",
 		priceRegex: /EUR\s*([\d,.]+\d)/,
 		parser: europeanPriceParser
+	},
+
+	"JPY" : {
+		symbol: "￥",
+		priceRegex: /￥\s*([\d,.]+\d)/,
+		parser: regularPriceParser
 	}
 };
 
@@ -150,6 +160,9 @@ if (document.domain.endsWith("com")) {
 // amazon.de
 } else if (document.domain.endsWith("de")) {
 	currencyFrom = "EUR";
+// amazon.co.jp
+} else if (document.domain.endsWith("jp")) {
+	currencyFrom = "JPY";
 } else {
 	return;
 }
