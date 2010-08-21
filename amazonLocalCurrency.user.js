@@ -269,7 +269,7 @@ function convertCurrency() {
 					// Quick check before using the regex
 					if (currNode.nodeValue.indexOf(currency.symbol) != -1) {
 						// nbsp replacement done to fix some amazon.de prices (e.g. "EUR&nbsp;1,23")
-						GM_log(currNode.nodeValue.replace(/&nbsp;/, " "));
+						// GM_log(currNode.nodeValue.replace(/&nbsp;/, " "));
 						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currency.priceRegex, appendConversion);
 					}
 				}
