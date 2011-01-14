@@ -72,6 +72,7 @@ if (window.location.href.indexOf("/articles/") !== -1) {
 		"a.whtbigheader",
 		"a.blkbigheader span",
 		"a .text12",
+		"a .text12w",
 		"a.text12",
 		"#CdaSlideShowMain1titlelink a",
 		"#CdaSlideShowMain1titlesublink a",
