@@ -24,9 +24,20 @@ var BRAND_WEBSITE = "בפייסבוק";
 
 function addFacebook(str) {
 
+	// Add word after another word starting with "ב" - doesn't yield good results
+	//if (str.match(/\bב/) !== null) {
+	//	// I hate dealing with hebrew in regexes
+	//	return str.replace(/ ב[^,?:]*/, "$& " + BRAND_WEBSITE);
+	//}
+
 	// Replace text before question mark, period or comma
-	if (str.match(/[?,.:]/) !== null) {
-		return str.replace(/([?,.:])/, " " + BRAND_WEBSITE + "$1");
+	if (str.match(/[?,.]/) !== null) {
+		return str.replace(/([?,.])/, " " + BRAND_WEBSITE + "$1");
+	}
+
+	// Add before m-dash (actually hyphen character..)
+	if (str.match(/ - /) !== null) {
+		return str.replace(/ - /, " " + BRAND_WEBSITE + " - ");
 	}
 
 	// Add word at end of first quotation
