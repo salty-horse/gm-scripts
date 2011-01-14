@@ -15,6 +15,7 @@
 // @namespace     https://github.com/salty-horse/gm-scripts/blob/master/ynet-facebook.user.js
 // @description   Make Ynet headlines more relevant to the modern age
 // @include       http://www.ynet.co.il/home/*
+// @include       http://www.ynet.co.il/articles/*
 // ==/UserScript==
 
 (function() {
@@ -42,17 +43,32 @@ function addFacebook(str) {
 	return str + " " + BRAND_WEBSITE;
 }
 
-var selectors = [
-	"a.whtbigheader",
-	"a.blkbigheader span",
-	"a .text12",
-	"a.text12",
-	"#CdaSlideShowMain1titlelink a",
-	"#CdaSlideShowMain1titlesublink a",
-	"a.blkbigheader",
-	".smallheader",
-	"font.text16 b"
-];
+var selectors;
+
+if (window.location.href.indexOf("/articles/") !== -1) {
+	selectors = [
+		"h1.text20b",
+		"span.text16g b",
+		"td.text16 b",
+		".text14 span p", // Doesn't match all paragraphs because Ynet doesn't use <p> correctly
+		"h3.pHeader",
+		".text13 div",
+		"a.text12"
+	];
+
+} else {
+	selectors = [
+		"a.whtbigheader",
+		"a.blkbigheader span",
+		"a .text12",
+		"a.text12",
+		"#CdaSlideShowMain1titlelink a",
+		"#CdaSlideShowMain1titlesublink a",
+		"a.blkbigheader",
+		".smallheader",
+		"font.text16 b"
+	];
+}
 
 var elems = document.querySelectorAll(selectors.join(","));
 
