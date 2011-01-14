@@ -45,11 +45,13 @@ function addFacebook(str) {
 var selectors = [
 	"a.whtbigheader",
 	"a.blkbigheader span",
-	".text12",
+	"a .text12",
+	"a.text12",
 	"#CdaSlideShowMain1titlelink a",
 	"#CdaSlideShowMain1titlesublink a",
 	"a.blkbigheader",
-	".smallheader"
+	".smallheader",
+	"font.text16 b"
 ];
 
 var elems = document.querySelectorAll(selectors.join(","));
