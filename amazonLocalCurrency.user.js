@@ -1,19 +1,20 @@
 /*
-  GreaseMonkey userscript for showing prices in your local currency.
+  Userscript for showing prices in your local currency.
   Customize to your own currency below.
 
-  Exchange rates provided by Yahoo @ www.yahoo.com
-
   New to GreaseMonkey? Visit <http://www.greasespot.net/>
+  New to Scriptish? Visit <http://scriptish.org/>
 
-  2005-04-17  Carl Henrik Lunde  chlunde+greasemonkey <at> ping.uio.no
-              http://www.ping.uio.no/~chlunde/stuff
+  2005-04-17
+    Carl Henrik Lunde  chlunde+greasemonkey <at> ping.uio.no
+    http://www.ping.uio.no/~chlunde/stuff
 
   Maintainer:
     Ori Avtalion  ori <at> avtalion.name
 
   Contributors:
-    Simon Pope skjpope -> gmail.com
+    Simon Pope skjpope <at> gmail.com
+    User600 united600 <at> hotmail.com
 
   Changelog:
 
@@ -38,7 +39,7 @@
     * The converted price now appears right next to the original price.
     * All of the prices in a piece of text are converted, instead of just the first one.
 
-  2008-15-12
+  2008-12-15
     * Added support for Amazon.ca
     * The regex now matches 0 or more spaces after the currency symbol. Useful for amazon.ca
 	  (I could just add the single space to the canadian dollar currency regex pattern, but
@@ -48,38 +49,60 @@
     * Added support for Amazon.de (Euros).
     * Refactored a bit to allow for different price parsers.
 
+  2011-09-08
+    * Added support for Amazon.fr, Amazon.it and Amazon.cn.
+    * Added new Metadata @keys (All supported by Scriptish).
+
   TODO:
     * Add GM menu options to change source currency
     * Add option and GUI to choose whether the local currency symbol
       should be prefixed or suffixed to the currency
-	* Figure out the local currency automatically, so one would be able to use this script
-	  on every website, even if it's using GBP on a .com domain
+    * Figure out the local currency automatically, so one would be able to use this script
+      on every website, even if it's using GBP on a .com domain
 */
 
 // ==UserScript==
 // @name          Amazon Local Currency - Dynamic version
 // @namespace     http://userscripts.org/scripts/show/1476
-// @description   Show prices in your local currency
+// @id            amazonlocalcurrency@amazon
+// @description   Show prices in your local currency. Exchange rates provided by Yahoo! Finance.
+// @author        Ori Avtalion <ori@avtalion.name> http://ori.avtalion.name/
+// @developer     Carl Henrik Lunde
+// @contributor   Simon Pope <skjpope@gmail.com>
+// @contributor   United600 <united600@hotmail.com>
+// @version       0.9.11
 // @include       http://www.amazon.com/*
 // @include       https://www.amazon.com/*
 // @include       http://amazon.com/*
 // @include       https://amazon.com/*
-// @include       http://www.amazon.co.uk/*
-// @include       https://www.amazon.co.uk/*
-// @include       http://amazon.co.uk/*
-// @include       https://amazon.co.uk/*
 // @include       http://www.amazon.ca/*
 // @include       https://www.amazon.ca/*
 // @include       http://amazon.ca/*
 // @include       https://amazon.ca/*
+// @include       http://www.amazon.co.uk/*
+// @include       https://www.amazon.co.uk/*
+// @include       http://amazon.co.uk/*
+// @include       https://amazon.co.uk/*
 // @include       http://www.amazon.de/*
 // @include       https://www.amazon.de/*
 // @include       http://amazon.de/*
 // @include       https://amazon.de/*
+// @include       http://www.amazon.fr/*
+// @include       https://www.amazon.fr/*
+// @include       http://amazon.fr/*
+// @include       https://amazon.fr/*
+// @include       http://www.amazon.it/*
+// @include       https://www.amazon.it/*
+// @include       http://amazon.it/*
+// @include       https://amazon.it/*
 // @include       http://www.amazon.co.jp/*
 // @include       https://www.amazon.co.jp/*
 // @include       http://amazon.co.jp/*
 // @include       https://amazon.co.jp/*
+// @include       http://www.amazon.cn/*
+// @include       https://www.amazon.cn/*
+// @include       http://amazon.cn/*
+// @include       https://amazon.cn/*
 // ==/UserScript==
 
 (function() {
@@ -144,6 +167,12 @@ var currencies = {
 		symbol: "￥",
 		priceRegex: /￥\s*([\d,.]+\d)/,
 		parser: regularPriceParser
+	},
+
+	"CNY" : {
+		symbol: "￥",
+		priceRegex: /￥\s*([\d,.]+\d)/,
+		parser: regularPriceParser
 	}
 };
 
@@ -151,18 +180,27 @@ var currencies = {
 // amazon.com
 if (document.domain.endsWith("com")) {
 	currencyFrom = "USD";
-// amazon.co.uk
-} else if (document.domain.endsWith("co.uk")) {
-	currencyFrom = "GBP";
 // amazon.ca
 } else if (document.domain.endsWith("ca")) {
 	currencyFrom = "CAD";
+// amazon.co.uk
+} else if (document.domain.endsWith("co.uk")) {
+	currencyFrom = "GBP";
 // amazon.de
 } else if (document.domain.endsWith("de")) {
+	currencyFrom = "EUR";
+// amazon.fr
+} else if (document.domain.endsWith("fr")) {
+	currencyFrom = "EUR";
+// amazon.it
+} else if (document.domain.endsWith("it")) {
 	currencyFrom = "EUR";
 // amazon.co.jp
 } else if (document.domain.endsWith("jp")) {
 	currencyFrom = "JPY";
+// amazon.cn
+} else if (document.domain.endsWith("cn")) {
+	currencyFrom = "CNY";
 } else {
 	return;
 }
