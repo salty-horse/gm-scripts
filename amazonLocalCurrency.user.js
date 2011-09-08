@@ -14,6 +14,7 @@
 
   Contributors:
     Simon Pope skjpope -> gmail.com
+    United600  united600 <at> hotmail.com
 
   Changelog:
 
@@ -48,6 +49,9 @@
     * Added support for Amazon.de (Euros).
     * Refactored a bit to allow for different price parsers.
 
+  2011-09-08
+    * Added support for Amazon.fr, Amazon.it and Amazon.cn
+
   TODO:
     * Add GM menu options to change source currency
     * Add option and GUI to choose whether the local currency symbol
@@ -76,10 +80,22 @@
 // @include       https://www.amazon.de/*
 // @include       http://amazon.de/*
 // @include       https://amazon.de/*
+// @include       http://www.amazon.fr/*
+// @include       https://www.amazon.fr/*
+// @include       http://amazon.fr/*
+// @include       https://amazon.fr/*
+// @include       http://www.amazon.it/*
+// @include       https://www.amazon.it/*
+// @include       http://amazon.it/*
+// @include       https://amazon.it/*
 // @include       http://www.amazon.co.jp/*
 // @include       https://www.amazon.co.jp/*
 // @include       http://amazon.co.jp/*
 // @include       https://amazon.co.jp/*
+// @include       http://www.amazon.cn/*
+// @include       https://www.amazon.cn/*
+// @include       http://amazon.cn/*
+// @include       https://amazon.cn/*
 // ==/UserScript==
 
 (function() {
@@ -144,6 +160,13 @@ var currencies = {
 		symbol: "￥",
 		priceRegex: /￥\s*([\d,.]+\d)/,
 		parser: regularPriceParser
+	},
+	
+
+	"CNY" : {
+		symbol: "￥",
+		priceRegex: /￥\s*([\d,.]+\d)/,
+		parser: regularPriceParser
 	}
 };
 
@@ -160,9 +183,18 @@ if (document.domain.endsWith("com")) {
 // amazon.de
 } else if (document.domain.endsWith("de")) {
 	currencyFrom = "EUR";
+// amazon.fr
+} else if (document.domain.endsWith("fr")) {
+	currencyFrom = "EUR";
+// amazon.it
+} else if (document.domain.endsWith("it")) {
+	currencyFrom = "EUR";
 // amazon.co.jp
 } else if (document.domain.endsWith("jp")) {
 	currencyFrom = "JPY";
+// amazon.cn
+} else if (document.domain.endsWith("cn")) {
+	currencyFrom = "CNY";
 } else {
 	return;
 }
