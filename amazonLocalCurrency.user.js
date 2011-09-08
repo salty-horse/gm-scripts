@@ -42,7 +42,7 @@
   2008-15-12
     * Added support for Amazon.ca
     * The regex now matches 0 or more spaces after the currency symbol. Useful for amazon.ca
-    (I could just add the single space to the canadian dollar currency regex pattern, but
+	  (I could just add the single space to the canadian dollar currency regex pattern, but
 	  other websites might behave differently).
 
   2009-05-02
@@ -175,7 +175,7 @@ if (document.domain.endsWith("com")) {
 	currencyFrom = "USD";
 // amazon.ca
 } else if (document.domain.endsWith("ca")) {
-  currencyFrom = "CAD";
+	currencyFrom = "CAD";
 // amazon.co.uk
 } else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
@@ -184,7 +184,7 @@ if (document.domain.endsWith("com")) {
 	currencyFrom = "EUR";
 // amazon.fr
 } else if (document.domain.endsWith("fr")) {
-  currencyFrom = "EUR";
+	currencyFrom = "EUR";
 // amazon.it
 } else if (document.domain.endsWith("it")) {
 	currencyFrom = "EUR";
@@ -193,7 +193,7 @@ if (document.domain.endsWith("com")) {
 	currencyFrom = "JPY";
 // amazon.cn
 } else if (document.domain.endsWith("cn")) {
-  currencyFrom = "CNY";
+	currencyFrom = "CNY";
 } else {
 	return;
 }
