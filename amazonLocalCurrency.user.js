@@ -14,7 +14,6 @@
 
   Contributors:
     Simon Pope skjpope -> gmail.com
-    User600  united600 <at> hotmail.com
 
   Changelog:
 
@@ -49,9 +48,6 @@
     * Added support for Amazon.de (Euros).
     * Refactored a bit to allow for different price parsers.
 
-  2011-09-08
-    * Added support for Amazon.fr, Amazon.it and Amazon.cn
-
   TODO:
     * Add GM menu options to change source currency
     * Add option and GUI to choose whether the local currency symbol
@@ -63,39 +59,27 @@
 // ==UserScript==
 // @name          Amazon Local Currency - Dynamic version
 // @namespace     http://userscripts.org/scripts/show/1476
-// @description   Show prices in your local currency.
+// @description   Show prices in your local currency
 // @include       http://www.amazon.com/*
 // @include       https://www.amazon.com/*
 // @include       http://amazon.com/*
 // @include       https://amazon.com/*
-// @include       http://www.amazon.ca/*
-// @include       https://www.amazon.ca/*
-// @include       http://amazon.ca/*
-// @include       https://amazon.ca/*
 // @include       http://www.amazon.co.uk/*
 // @include       https://www.amazon.co.uk/*
 // @include       http://amazon.co.uk/*
 // @include       https://amazon.co.uk/*
+// @include       http://www.amazon.ca/*
+// @include       https://www.amazon.ca/*
+// @include       http://amazon.ca/*
+// @include       https://amazon.ca/*
 // @include       http://www.amazon.de/*
 // @include       https://www.amazon.de/*
 // @include       http://amazon.de/*
 // @include       https://amazon.de/*
-// @include       http://www.amazon.fr/*
-// @include       https://www.amazon.fr/*
-// @include       http://amazon.fr/*
-// @include       https://amazon.fr/*
-// @include       http://www.amazon.it/*
-// @include       https://www.amazon.it/*
-// @include       http://amazon.it/*
-// @include       https://amazon.it/*
 // @include       http://www.amazon.co.jp/*
 // @include       https://www.amazon.co.jp/*
 // @include       http://amazon.co.jp/*
 // @include       https://amazon.co.jp/*
-// @include       http://www.amazon.cn/*
-// @include       https://www.amazon.cn/*
-// @include       http://amazon.cn/*
-// @include       https://amazon.cn/*
 // ==/UserScript==
 
 (function() {
@@ -160,12 +144,6 @@ var currencies = {
 		symbol: "￥",
 		priceRegex: /￥\s*([\d,.]+\d)/,
 		parser: regularPriceParser
-	},
-
-	"CNY" : {
-		symbol: "￥",
-		priceRegex: /￥\s*([\d,.]+\d)/,
-		parser: regularPriceParser
 	}
 };
 
@@ -173,27 +151,18 @@ var currencies = {
 // amazon.com
 if (document.domain.endsWith("com")) {
 	currencyFrom = "USD";
-// amazon.ca
-} else if (document.domain.endsWith("ca")) {
-	currencyFrom = "CAD";
 // amazon.co.uk
 } else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
+// amazon.ca
+} else if (document.domain.endsWith("ca")) {
+	currencyFrom = "CAD";
 // amazon.de
 } else if (document.domain.endsWith("de")) {
-	currencyFrom = "EUR";
-// amazon.fr
-} else if (document.domain.endsWith("fr")) {
-	currencyFrom = "EUR";
-// amazon.it
-} else if (document.domain.endsWith("it")) {
 	currencyFrom = "EUR";
 // amazon.co.jp
 } else if (document.domain.endsWith("jp")) {
 	currencyFrom = "JPY";
-// amazon.cn
-} else if (document.domain.endsWith("cn")) {
-	currencyFrom = "CNY";
 } else {
 	return;
 }
