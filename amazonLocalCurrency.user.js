@@ -162,7 +162,7 @@ var currencies = {
 		parser: regularPriceParser
 	},
 
-  "CNY" : {
+	"CNY" : {
 		symbol: "￥",
 		priceRegex: /￥\s*([\d,.]+\d)/,
 		parser: regularPriceParser
