@@ -211,7 +211,7 @@ var decimalPlaces = 2;
 var prefixCurrencySymbol = true;
 
 // Only traverse these elements
-var elnames = ["td", "font", "b", "span", "strong", "div"];
+var elnames = ["td", "font", "b", "span", "strong", "div", "em", "p", "a", "h5", "strike"];
 
 var rounding = Math.pow(10, decimalPlaces);
 
