@@ -14,6 +14,8 @@
 
 // @include         *://www.google.*/search?*
 // @include         *://ipv6.google.*/search?*
+// @include         *://www.google.*/webhp?*
+// @include         *://ipv6.google.*/webhp?*
 // ==/UserScript==
 
 (function() {
@@ -54,7 +56,12 @@ function checkQuery(isPageLoad) {
 	const emoticon = EMOTICONS[search_term];
 	if (emoticon) {
 		var elem = $('<div id="salty_shruggie" class="lr_container_mod"><div class="vk_ans">' + emoticon + '</div></div>');
-		$('#center_col').prepend(elem);
+		// HACK: Wait a bit for the element to load
+		if (isPageLoad) {
+			window.setTimeout(function(){$('#center_col').prepend(elem);}, 500)
+		} else {
+			$('#center_col').prepend(elem);
+		}
 	}
 }
 
