@@ -64,6 +64,10 @@
 // @name          Amazon Local Currency - Dynamic version
 // @namespace     http://userscripts.org/scripts/show/1476
 // @description   Show prices in your local currency
+// @grant         GM_getValue
+// @grant         GM_setValue
+// @grant         GM_registerMenuCommand
+// @grant         GM_xmlhttpRequest
 // @include       http://www.amazon.com/*
 // @include       https://www.amazon.com/*
 // @include       http://amazon.com/*
@@ -100,6 +104,11 @@
 
 (function() {
 
+// Don't run in iframes - prevent double execution
+if (window.top !== window.self) {
+	return;
+}
+
 // Helper function. From the Prototype Javascript Framework:
 String.prototype.endsWith = function (pattern) {
 	var d = this.length - pattern.length;
@@ -119,11 +128,17 @@ function regularPriceParser(price, currency) {
 // Decimal separator:   ,
 // Thousands separator: .
 function europeanPriceParser(price, currency) {
-	function replacer(character) {
-		var translate = {".":"", ",":"."};
-		return translate[character];
+	// When browsing Amazon.de in English, some prices are in European style and some aren't,
+	// so instead we assume the last [,.] is the decimal separator
+	for (var i = price.length - 1; i >= 0; i--) {
+		if (price[i] == "." || price[i] == ",") {
+			return regularPriceParser(
+				price.slice(0, i) + "." + price.slice(i+1, price.length),
+				currency);
+		}
 	}
-	return regularPriceParser(price.replace(/[,.]/g, replacer), currency);
+
+	return regularPriceParser(price, currency);
 }
 
 // priceRegex explanation:
@@ -161,7 +176,6 @@ var currencies = {
 		priceRegex: /￥\s*([\d,.]+\d)/,
 		parser: regularPriceParser
 	},
-	
 
 	"CNY" : {
 		symbol: "￥",
@@ -279,7 +293,7 @@ function formatCurrency(num, rounding, symbol, prefix) {
 }
 
 // Convert desired currency
-function convertCurrency() {
+function convertCurrency(element) {
 
 	// Match a string that begins with the symbol, and then
 	// has 0 or more spaces, digits, commas and periods, ending with a digit
@@ -288,7 +302,7 @@ function convertCurrency() {
 	var i,j,k;
 
 	for (i = 0; i < elnames.length; ++i) {
-		var elems = document.getElementsByTagName(elnames[i]);
+		var elems = element.getElementsByTagName(elnames[i]);
 
 		for (j = 0; j < elems.length; ++j) {
 			var price = elems[j];
@@ -298,10 +312,11 @@ function convertCurrency() {
 				// Only modify text nodes
 				if (currNode.nodeType == 3) {
 
-					// Quick check before using the regex
-					if (currNode.nodeValue.indexOf(currency.symbol) != -1) {
+					// Quick check that the currency symbol exists, and that we didn't already convert this
+					if (currNode.nodeValue.indexOf(currency.symbol) != -1 &&
+					    currNode.nodeValue.indexOf(currencyToSymbol) == -1) {
 						// nbsp replacement done to fix some amazon.de prices (e.g. "EUR&nbsp;1,23")
-						// GM_log(currNode.nodeValue.replace(/&nbsp;/, " "));
+						// console.log(currNode.nodeValue.replace(/&nbsp;/, " "));
 						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currency.priceRegex, appendConversion);
 					}
 				}
@@ -319,7 +334,7 @@ function setLocalCurrency() {
 		return;
 	}
 
-	// GM_log("Currency changed from " + currencyTo + " to " + newCurrencyTo);
+	// console.log("Currency changed from " + currencyTo + " to " + newCurrencyTo);
 
 	GM_setValue("currency_to", newCurrencyTo);
 	currencyTo = newCurrencyTo;
@@ -343,25 +358,35 @@ function setLocalCurrencySymbol() {
 
 	alert("Success! Refresh page to see the changes.");
 
-	// GM_log("Currency Symbol changed from " + currencyToSymbol + " to " + newSymbol);
+	// console.log("Currency Symbol changed from " + currencyToSymbol + " to " + newSymbol);
 
 	GM_setValue("currency_symbol", newSymbol);
 	currencyToSymbol = newSymbol;
 }
 
+function registerMutationObserver() {
+	var observer = new window.MutationObserver(function(mutations) {
+		mutations.forEach(function(mutation) {
+			convertCurrency(mutation.target);
+		});
+	});
+
+	observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 
 GM_registerMenuCommand("Change Local Currency (" + currencyTo + ")", setLocalCurrency);
 GM_registerMenuCommand("Change Local Currency Symbol (" + currencyToSymbol + ")", setLocalCurrencySymbol);
 
-
 if (rate === undefined || todayString !== lastRun) {
-	// GM_log("Currency data is out-dated. Fetching new information...");
+	// console.log("Currency data is out-dated. Fetching new information...");
 	fetchCurrencyData(currencyFrom, function() {
 		rate = GM_getValue(CURRENCY_RATE + currencyFrom);
-		convertCurrency();
+		convertCurrency(document);
+		registerMutationObserver();
 	});
 } else {
-	convertCurrency();
+	convertCurrency(document);
+	registerMutationObserver();
 }
 
 })();
