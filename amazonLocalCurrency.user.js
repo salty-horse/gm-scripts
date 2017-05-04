@@ -104,6 +104,8 @@
 
 (function() {
 
+"use strict";
+
 // Don't run in iframes - prevent double execution
 if (window.top !== window.self) {
 	return;
@@ -270,9 +272,9 @@ function appendConversion(price, matched) {
 }
 
 function formatCurrency(num, rounding, symbol, prefix) {
-	sign = (num == (num = Math.abs(num)));
+	var sign = (num == (num = Math.abs(num)));
 	num = Math.floor(num*rounding + 0.50000000001);
-	cents = num % rounding;
+	var cents = num % rounding;
 
 	num = Math.floor(num / rounding).toString();
 
