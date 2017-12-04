@@ -2,7 +2,7 @@
   GreaseMonkey userscript for showing prices in your local currency.
   Customize to your own currency below.
 
-  Exchange rates provided by Yahoo @ www.yahoo.com
+  Exchange rates provided by Fixer @ fixer.io
 
   New to GreaseMonkey? Visit <http://www.greasespot.net/>
 
@@ -51,6 +51,11 @@
 
   2011-09-08
     * Added support for Amazon.fr, Amazon.it and Amazon.cn
+
+  2017-12-04
+    * Switched to fixer.io since Yahoo disabled it's API recently
+      Idea from another project:
+      https://github.com/FurkanKambay/AmazonPrice/
 
   TODO:
     * Add GM menu options to change source currency
@@ -245,11 +250,12 @@ function fetchCurrencyData(coin, callback) {
 	GM_xmlhttpRequest({
 		method: "GET",
 		url: "http://download.finance.yahoo.com/d/quotes.csv?s=" + coin + currencyTo + "=X&f=l1&e=.csv",
-		onload: function(responseDetails) {
-			var rate = responseDetails.responseText.replace(/[\r\n]/g, "");
-			GM_setValue(CURRENCY_RATE + coin, rate);
-			GM_setValue(LAST_RUN + coin, todayString);
-			callback();
+        onload: responseDetails => {
+            var rate = JSON.parse(responseDetails.responseText).rates[currencyTo];
+            GM_log("Rate: " + rate);
+            GM_setValue(CURRENCY_RATE + coin, rate);
+            GM_setValue(LAST_RUN + coin, todayString);
+            callback();
 		},
 		onerror: function(responseDetails) {
 			alert("Error fetching currency data for " + coin);
