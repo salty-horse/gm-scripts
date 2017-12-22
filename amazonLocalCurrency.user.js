@@ -6,100 +6,29 @@
 
   New to GreaseMonkey? Visit <http://www.greasespot.net/>
 
-  2005-04-17  Carl Henrik Lunde  chlunde+greasemonkey <at> ping.uio.no
-              http://www.ping.uio.no/~chlunde/stuff
+  Visit <https://github.com/salty-horse/gm-scripts/> for updates to this script.
 
-  Maintainer:
+  Author:
     Ori Avtalion  ori <at> avtalion.name
+
+  Modified from work by:
+    Carl Henrik Lunde  chlunde+greasemonkey <at> ping.uio.no
+    http://www.ping.uio.no/~chlunde/stuff
 
   Contributors:
     Simon Pope skjpope -> gmail.com
     United600  united600 <at> hotmail.com
-
-  Changelog:
-
-  2005-09-14
-    * Added GM menu options to change the local currency coin and
-      symbol.
-    * Added price rounding.
-    * Added option to toggle whether or not to display the
-      local currency symbol.
-    * Fixed double printing of converted currency
-
-  2005-10-08
-    * Fixed occasions where the price would show up several times
-    * Prices are now converted even when they're part of a large sentence,
-      such as in the check-out process ("total price is $42.13")
-
-  2006-02-25
-    * Added handling for prices that are not the first element in a tag,
-      such as in amazon UK's wish list: <span><b>Price:</b>$13.37</span>
-
-  2008-03-14
-    * The converted price now appears right next to the original price.
-    * All of the prices in a piece of text are converted, instead of just the first one.
-
-  2008-15-12
-    * Added support for Amazon.ca
-    * The regex now matches 0 or more spaces after the currency symbol. Useful for amazon.ca
-	  (I could just add the single space to the canadian dollar currency regex pattern, but
-	  other websites might behave differently).
-
-  2009-05-02
-    * Added support for Amazon.de (Euros).
-    * Refactored a bit to allow for different price parsers.
-
-  2011-09-08
-    * Added support for Amazon.fr, Amazon.it and Amazon.cn
-
-  TODO:
-    * Add GM menu options to change source currency
-    * Add option and GUI to choose whether the local currency symbol
-      should be prefixed or suffixed to the currency
-	* Figure out the local currency automatically, so one would be able to use this script
-	  on every website, even if it's using GBP on a .com domain
 */
 
 // ==UserScript==
 // @name          Amazon Local Currency - Dynamic version
-// @namespace     http://userscripts.org/scripts/show/1476
+// @namespace     https://github.com/salty-horse/gm-scripts/
 // @description   Show prices in your local currency
 // @grant         GM_getValue
 // @grant         GM_setValue
 // @grant         GM_registerMenuCommand
 // @grant         GM_xmlhttpRequest
-// @include       http://www.amazon.com/*
-// @include       https://www.amazon.com/*
-// @include       http://amazon.com/*
-// @include       https://amazon.com/*
-// @include       http://www.amazon.co.uk/*
-// @include       https://www.amazon.co.uk/*
-// @include       http://amazon.co.uk/*
-// @include       https://amazon.co.uk/*
-// @include       http://www.amazon.ca/*
-// @include       https://www.amazon.ca/*
-// @include       http://amazon.ca/*
-// @include       https://amazon.ca/*
-// @include       http://www.amazon.de/*
-// @include       https://www.amazon.de/*
-// @include       http://amazon.de/*
-// @include       https://amazon.de/*
-// @include       http://www.amazon.fr/*
-// @include       https://www.amazon.fr/*
-// @include       http://amazon.fr/*
-// @include       https://amazon.fr/*
-// @include       http://www.amazon.it/*
-// @include       https://www.amazon.it/*
-// @include       http://amazon.it/*
-// @include       https://amazon.it/*
-// @include       http://www.amazon.co.jp/*
-// @include       https://www.amazon.co.jp/*
-// @include       http://amazon.co.jp/*
-// @include       https://amazon.co.jp/*
-// @include       http://www.amazon.cn/*
-// @include       https://www.amazon.cn/*
-// @include       http://amazon.cn/*
-// @include       https://amazon.cn/*
+// @include       /https://(www\.)?amazon\.(com|co\.uk|ca|cn|de|fr|it|co\.jp)/.*/
 // ==/UserScript==
 
 (function() {
