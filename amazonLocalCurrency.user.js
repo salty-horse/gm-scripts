@@ -24,16 +24,21 @@
 // @name          Amazon Local Currency - Dynamic version
 // @namespace     https://github.com/salty-horse/gm-scripts/
 // @description   Show prices in your local currency
-// @grant         GM_getValue
-// @grant         GM_setValue
-// @grant         GM_registerMenuCommand
-// @grant         GM_xmlhttpRequest
+// @grant         GM.getValue
+// @grant         GM.setValue
+// @grant         GM.xmlHttpRequest
 // @include       /https://(www\.)?amazon\.(com|co\.uk|ca|cn|de|fr|it|co\.jp)/.*/
 // ==/UserScript==
 
-(function() {
+(async function() {
 
 "use strict";
+
+// EDIT THESE BEFORE USE:
+var currencyToDefault = "ILS"; // The target currency (ISO 4217).
+var currencyToSymbolDefault = "NIS "; // The symbol to show next to the converted amount.
+var prefixCurrencySymbol = true; // Whether to print the currenyTo symbol before (true) or after (false) the amount.
+var decimalPlaces = 2; // How many digits to show after the decimal point
 
 // Don't run in iframes - prevent double execution
 if (window.top !== window.self) {
@@ -48,7 +53,6 @@ String.prototype.endsWith = function (pattern) {
 
 var amazonCurrencies = ["USD", "GBP", "CAD"];
 var currencyFrom;
-
 
 // Decimal separator:   .
 // Thousands separator: ,
@@ -148,40 +152,54 @@ if (document.domain.endsWith("com")) {
 var LAST_RUN = "last_run_";
 var CURRENCY_RATE = "currency_rate_";
 
-// Customize to fit:
-// (Some options are modifiable from the GUI)
-var currencyToDefault = "ILS";
-var currencyToSymbolDefault = "NIS ";
-var decimalPlaces = 2;
-var prefixCurrencySymbol = true;
-
 // Only traverse these elements
 var elnames = ["td", "font", "b", "span", "strong", "div", "em", "p", "a", "h5", "strike"];
 
 var rounding = Math.pow(10, decimalPlaces);
 
 // Check last run time
-var rate = GM_getValue(CURRENCY_RATE + currencyFrom);
-var lastRun = GM_getValue(LAST_RUN + currencyFrom, "01/01/0001");
-var currencyTo = GM_getValue("currency_to", currencyToDefault);
-var todayDate = new Date();
-var todayString = todayDate.getDate() + "/" + todayDate.getMonth() + "/" + todayDate.getFullYear();
-var currencyToSymbol = GM_getValue("currency_symbol", currencyToSymbolDefault);
+var rate = await GM.getValue(CURRENCY_RATE + currencyFrom);
+var lastRun = await GM.getValue(LAST_RUN + currencyFrom, "01/01/0001");
+var currencyTo = await GM.getValue("currency_to", currencyToDefault);
+var todayString = (new Date()).toISOString().substring(0, 10);
+var currencyToSymbol = await GM.getValue("currency_symbol", currencyToSymbolDefault);
+
+function registerMutationObserver() {
+	var observer = new window.MutationObserver(function(mutations) {
+		mutations.forEach(function(mutation) {
+			convertCurrency(mutation.target);
+		});
+	});
+
+	observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+
+if (rate === undefined || todayString !== lastRun) {
+	await fetchCurrencyData(currencyFrom, async function() {
+		rate = await GM.getValue(CURRENCY_RATE + currencyFrom);
+		convertCurrency(document);
+		registerMutationObserver();
+	});
+} else {
+	convertCurrency(document);
+	registerMutationObserver();
+}
+
 
 // Function definitions
 
-function fetchCurrencyData(coin, callback) {
-	GM_xmlhttpRequest({
+async function fetchCurrencyData(coin, callback) {
+	GM.xmlHttpRequest({
 		method: "GET",
 		url: `https://api.fixer.io/latest?base=${coin}&symbols=${currencyTo}`,
 		onload: function(responseDetails) {
 			var rate = JSON.parse(responseDetails.responseText).rates[currencyTo];
-			GM_setValue(CURRENCY_RATE + coin, rate);
-			GM_setValue(LAST_RUN + coin, todayString);
-			callback();
+			GM.setValue(CURRENCY_RATE + coin, rate);
+			GM.setValue(LAST_RUN + coin, todayString);
+			callback().then();
 		},
 		onerror: function(responseDetails) {
-			alert("Error fetching currency data for " + coin);
+			alert(`Error fetching currency data for ${coin}`);
 		}
 	});
 }
@@ -247,77 +265,12 @@ function convertCurrency(element) {
 					if (currNode.nodeValue.indexOf(currency.symbol) != -1 &&
 					    currNode.nodeValue.indexOf(currencyToSymbol) == -1) {
 						// nbsp replacement done to fix some amazon.de prices (e.g. "EUR&nbsp;1,23")
-						// console.log(currNode.nodeValue.replace(/&nbsp;/, " "));
 						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currency.priceRegex, appendConversion);
 					}
 				}
 			}
 		}
 	}
-}
-
-
-function setLocalCurrency() {
-	var newCurrencyTo = prompt("Enter the code for your local currency (e.g. AUD, USD, ILS, etc.)", "");
-
-	if (newCurrencyTo === "" || newCurrencyTo === null) {
-		alert("Currency code is invalid. Please enter again");
-		return;
-	}
-
-	// console.log("Currency changed from " + currencyTo + " to " + newCurrencyTo);
-
-	GM_setValue("currency_to", newCurrencyTo);
-	currencyTo = newCurrencyTo;
-
-	// Reset the various conversion rates
-	for (var i = 0; i < amazonCurrencies.length; ++i) {
-		GM_setValue(LAST_RUN + amazonCurrencies[i], "01/01/0001");
-	}
-
-	// Not really.. at this point, the fetching isn't done yet
-	alert("Success! Refresh page to see the changes.");
-}
-
-function setLocalCurrencySymbol() {
-	var newSymbol = prompt("Enter the symbol for your local currency ( e.g. A$, $, ¥, £, etc.)", "");
-
-	if (newSymbol === '' || newSymbol === null) {
-		alert("Symbol is invalid. Please enter again");
-		return;
-	}
-
-	alert("Success! Refresh page to see the changes.");
-
-	// console.log("Currency Symbol changed from " + currencyToSymbol + " to " + newSymbol);
-
-	GM_setValue("currency_symbol", newSymbol);
-	currencyToSymbol = newSymbol;
-}
-
-function registerMutationObserver() {
-	var observer = new window.MutationObserver(function(mutations) {
-		mutations.forEach(function(mutation) {
-			convertCurrency(mutation.target);
-		});
-	});
-
-	observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-}
-
-GM_registerMenuCommand("Change Local Currency (" + currencyTo + ")", setLocalCurrency);
-GM_registerMenuCommand("Change Local Currency Symbol (" + currencyToSymbol + ")", setLocalCurrencySymbol);
-
-if (rate === undefined || todayString !== lastRun) {
-	// console.log("Currency data is out-dated. Fetching new information...");
-	fetchCurrencyData(currencyFrom, function() {
-		rate = GM_getValue(CURRENCY_RATE + currencyFrom);
-		convertCurrency(document);
-		registerMutationObserver();
-	});
-} else {
-	convertCurrency(document);
-	registerMutationObserver();
 }
 
 })();
