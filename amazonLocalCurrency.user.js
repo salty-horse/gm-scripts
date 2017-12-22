@@ -2,7 +2,7 @@
   GreaseMonkey userscript for showing prices in your local currency.
   Customize to your own currency below.
 
-  Exchange rates provided by Yahoo @ www.yahoo.com
+  Exchange rates provided by Fixer @ http://fixer.io/
 
   New to GreaseMonkey? Visit <http://www.greasespot.net/>
 
@@ -244,9 +244,9 @@ var currencyToSymbol = GM_getValue("currency_symbol", currencyToSymbolDefault);
 function fetchCurrencyData(coin, callback) {
 	GM_xmlhttpRequest({
 		method: "GET",
-		url: "http://download.finance.yahoo.com/d/quotes.csv?s=" + coin + currencyTo + "=X&f=l1&e=.csv",
+		url: `https://api.fixer.io/latest?base=${coin}&symbols=${currencyTo}`,
 		onload: function(responseDetails) {
-			var rate = responseDetails.responseText.replace(/[\r\n]/g, "");
+			var rate = JSON.parse(responseDetails.responseText).rates[currencyTo];
 			GM_setValue(CURRENCY_RATE + coin, rate);
 			GM_setValue(LAST_RUN + coin, todayString);
 			callback();
