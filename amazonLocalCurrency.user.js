@@ -191,9 +191,9 @@ if (rate === undefined || todayString !== lastRun) {
 async function fetchCurrencyData(coin, callback) {
 	GM.xmlHttpRequest({
 		method: "GET",
-		url: `https://api.fixer.io/latest?base=${coin}&symbols=${currencyTo}`,
+		url: `https://free.currencyconverterapi.com/api/v6/convert?q=${coin}_${currencyTo}&compact=y`,
 		onload: function(responseDetails) {
-			var rate = JSON.parse(responseDetails.responseText).rates[currencyTo];
+			var rate = JSON.parse(responseDetails.responseText)[`${coin}_${currencyTo}`].val;
 			GM.setValue(CURRENCY_RATE + coin, rate);
 			GM.setValue(LAST_RUN + coin, todayString);
 			callback().then();
