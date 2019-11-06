@@ -52,7 +52,7 @@ String.prototype.endsWith = function (pattern) {
 };
 
 var amazonCurrencies = ["USD", "GBP", "CAD"];
-var currencyFrom;
+let currencyObj;
 
 // Decimal separator:   .
 // Thousands separator: ,
@@ -82,35 +82,10 @@ function europeanPriceParser(price, currency) {
 // The actual numeric price portion MUST BE enclosed in parentheses.
 
 var currencies = {
-	"USD" : {
-		symbol: "$",
-		priceRegex: /\$\s*([\d,.]+\d)/,
-		parser: regularPriceParser
-	},
 
-	"GBP" : {
-		symbol: "£",
-		priceRegex: /£\s*([\d,.]+\d)/,
-		parser: regularPriceParser
-	},
 
-	"CAD" : {
-		symbol: "CDN$",
-		priceRegex: /CDN\$\s*([\d,.]+\d)/,
-		parser: regularPriceParser
-	},
 
-	"EUR" : {
-		symbol: "EUR",
-		priceRegex: /EUR\s*([\d,.]+\d)/,
-		parser: europeanPriceParser
-	},
 
-	"JPY" : {
-		symbol: "￥",
-		priceRegex: /￥\s*([\d,.]+\d)/,
-		parser: regularPriceParser
-	},
 
 	"CNY" : {
 		symbol: "￥",
@@ -121,29 +96,56 @@ var currencies = {
 
 // Check which Amazon we're at:
 // amazon.com
-if (document.domain.endsWith("com")) {
-	currencyFrom = "USD";
+if (document.domain.endsWith("philibertnet.com")) {
+	currencyObj = {
+		from: "EUR",
+		symbol: "€",
+		priceRegex: /([\d,.]+\d) €/,
+		parser: europeanPriceParser
+	};
+} else if (document.domain.endsWith("com")) {
+	currencyObj =  {
+		from: "USD",
+		symbol: "$",
+		priceRegex: /\$\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	};
 // amazon.co.uk
 } else if (document.domain.endsWith("co.uk")) {
 	currencyFrom = "GBP";
+	currencObj = {
+		from: "GBP",
+		symbol: "£",
+		priceRegex: /£\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	};
 // amazon.ca
 } else if (document.domain.endsWith("ca")) {
-	currencyFrom = "CAD";
-// amazon.de
-} else if (document.domain.endsWith("de")) {
-	currencyFrom = "EUR";
-// amazon.fr
-} else if (document.domain.endsWith("fr")) {
-	currencyFrom = "EUR";
-// amazon.it
-} else if (document.domain.endsWith("it")) {
-	currencyFrom = "EUR";
-// amazon.co.jp
-} else if (document.domain.endsWith("jp")) {
-	currencyFrom = "JPY";
-// amazon.cn
-} else if (document.domain.endsWith("cn")) {
-	currencyFrom = "CNY";
+	currencyObj = {
+		from: "CAD",
+		symbol: "CDN$",
+		priceRegex: /CDN\$\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	};
+// amazon.de/fr/it
+} else if (document.domain.endsWith("de") ||
+           document.domain.endsWith("fr") ||
+           document.domain.endsWith("it")) {
+	currencyObj = {
+		from: "EUR",
+		symbol: "EUR",
+		priceRegex: /EUR\s*([\d,.]+\d)/,
+		parser: europeanPriceParser
+	};
+// amazon.co.jp / cn
+} else if (document.domain.endsWith("jp") ||
+           document.domain.endsWith("cn")) {
+	currencyObj = {
+		from: "JPY",
+		symbol: "￥",
+		priceRegex: /￥\s*([\d,.]+\d)/,
+		parser: regularPriceParser
+	};
 } else {
 	return;
 }
@@ -153,13 +155,13 @@ var LAST_RUN = "last_run_";
 var CURRENCY_RATE = "currency_rate_";
 
 // Only traverse these elements
-var elnames = ["td", "font", "b", "span", "strong", "div", "em", "p", "a", "h5", "strike"];
+var elnames = ["td", "font", "b", "span", "strong", "div", "em", "p", "a", "h5", "strike", "li"];
 
 var rounding = Math.pow(10, decimalPlaces);
 
 // Check last run time
-var rate = await GM.getValue(CURRENCY_RATE + currencyFrom);
-var lastRun = await GM.getValue(LAST_RUN + currencyFrom, "01/01/0001");
+var rate = await GM.getValue(CURRENCY_RATE + currencyObj.from);
+var lastRun = await GM.getValue(LAST_RUN + currencyObj.from, "01/01/0001");
 var currencyTo = await GM.getValue("currency_to", currencyToDefault);
 var todayString = (new Date()).toISOString().substring(0, 10);
 var currencyToSymbol = await GM.getValue("currency_symbol", currencyToSymbolDefault);
@@ -175,8 +177,8 @@ function registerMutationObserver() {
 }
 
 if (rate === undefined || todayString !== lastRun) {
-	await fetchCurrencyData(currencyFrom, async function() {
-		rate = await GM.getValue(CURRENCY_RATE + currencyFrom);
+	await fetchCurrencyData(currencyObj.from, async function() {
+		rate = await GM.getValue(CURRENCY_RATE + currencyObj.from);
 		convertCurrency(document);
 		registerMutationObserver();
 	});
@@ -191,9 +193,9 @@ if (rate === undefined || todayString !== lastRun) {
 async function fetchCurrencyData(coin, callback) {
 	GM.xmlHttpRequest({
 		method: "GET",
-		url: `https://free.currencyconverterapi.com/api/v6/convert?q=${coin}_${currencyTo}&compact=y`,
+		url: `https://api.exchangeratesapi.io/latest?symbols=${currencyTo}&base=${coin}`,
 		onload: function(responseDetails) {
-			var rate = JSON.parse(responseDetails.responseText)[`${coin}_${currencyTo}`].val;
+			var rate = JSON.parse(responseDetails.responseText).rates[currencyTo];
 			GM.setValue(CURRENCY_RATE + coin, rate);
 			GM.setValue(LAST_RUN + coin, todayString);
 			callback().then();
@@ -206,7 +208,7 @@ async function fetchCurrencyData(coin, callback) {
 
 // Receives a price, and converts it. Returns "<original price> (<converted price>)"
 function appendConversion(price, matched) {
-	var originalPrice = currencies[currencyFrom].parser(matched, currencyFrom);
+	var originalPrice = currencyObj.parser(matched, currencyObj.from);
 
 	if (isNaN(originalPrice)) {
 		return price;
@@ -246,26 +248,24 @@ function convertCurrency(element) {
 
 	// Match a string that begins with the symbol, and then
 	// has 0 or more spaces, digits, commas and periods, ending with a digit
-	var currency = currencies[currencyFrom];
-
-	var i,j,k;
+	let i,j,k;
 
 	for (i = 0; i < elnames.length; ++i) {
-		var elems = element.getElementsByTagName(elnames[i]);
+		let elems = element.getElementsByTagName(elnames[i]);
 
 		for (j = 0; j < elems.length; ++j) {
-			var price = elems[j];
+			let price = elems[j];
 
 			for (k = 0; k < price.childNodes.length; ++k) {
-				var currNode = price.childNodes[k];
+				let currNode = price.childNodes[k];
 				// Only modify text nodes
 				if (currNode.nodeType == 3) {
 
 					// Quick check that the currency symbol exists, and that we didn't already convert this
-					if (currNode.nodeValue.indexOf(currency.symbol) != -1 &&
+					if (currNode.nodeValue.indexOf(currencyObj.symbol) != -1 &&
 					    currNode.nodeValue.indexOf(currencyToSymbol) == -1) {
 						// nbsp replacement done to fix some amazon.de prices (e.g. "EUR&nbsp;1,23")
-						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currency.priceRegex, appendConversion);
+						currNode.nodeValue = currNode.nodeValue.replace(/&nbsp;/, " ").replace(currencyObj.priceRegex, appendConversion);
 					}
 				}
 			}
